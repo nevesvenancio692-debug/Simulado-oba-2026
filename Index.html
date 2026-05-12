@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBA 2026 - Simulado de Astronomia</title>
+    <style>
+        /* ============================================
+           RESET E BASE
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a1a;
+            --bg-card: #11112a;
+            --bg-card-hover: #1a1a3a;
+            --accent-blue: #4fc3f7;
+            --accent-purple: #9c27b0;
+            --accent-gold: #ffd700;
+            --accent-green: #4caf50;
+            --accent-red: #f44336;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0cc;
+            --border-color: rgba(79, 195, 247, 0.2);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ============================================
+           ESTRELAS ANIMADAS NO FUNDO
+           ============================================ */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: var(--max-opacity); transform: scale(1); }
+        }
+
+        .shooting-star {
+            position: absolute;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, white, transparent);
+            animation: shoot var(--shoot-duration) linear infinite;
+            opacity: 0;
+            border-radius: 2px;
+        }
+
+        @keyframes shoot {
+            0% { transform: translateX(-100px) translateY(0) rotate(-45deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(calc(100vw + 100px)) translateY(calc(100vh + 100px)) rotate(-45deg); opacity: 0; }
+        }
+
+        /* ============================================
+           LAYOUT PRINCIPAL
+           ============================================ */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(79, 195, 247, 0.3);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        /* ============================================
+           CAMPO DE NOME
+           ============================================ */
+        .nome-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .nome-section label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nome-section input {
+            width: 100%;
+            max-width: 400px;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .nome-section input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(79, 195, 247, 0.2);
+        }
+
+        .nome-section input::placeholder {
+            color: rgba(160, 160, 204, 0.5);
+        }
+
+        /* ============================================
+           PAINEL DE INFO (CRONOMETRO + PROGRESSO)
+           ============================================ */
+        .info-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 15px 25px;
+            text-align: center;
+            min-width: 140px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(79, 195, 247, 0.05);
+        }
+
+        .info-card:hover {
+            box-shadow: 0 0 30px rgba(79, 195, 247, 0.15);
+            border-color: rgba(79, 195, 247, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .info-card .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .info-card .value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-card .value {
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        /* ============================================
+           BARRA DE PROGRESSO
+           ============================================ */
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue), var(--accent-gold));
+            border-radius: 5px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 15px rgba(79, 195, 247, 0.3);
+        }
+
+        /* ============================================
+           SEÇÕES DE DIFICULDADE
+           ============================================ */
+        .difficulty-section {
+            margin-bottom: 30px;
+        }
+
+        .difficulty-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .difficulty-icon {
+            font-size: 1.5rem;
+        }
+
+        .difficulty-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .difficulty-easy .difficulty-title { color: #4caf50; }
+        .difficulty-medium .difficulty-title { color: #ff9800; }
+        .difficulty-hard .difficulty-title { color: #f44336; }
+        .difficulty-impossible .difficulty-title { color: #e91e63; }
+
+        .difficulty-easy .difficulty-header { border-color: rgba(76, 175, 80, 0.3); }
+        .difficulty-medium .difficulty-header { border-color: rgba(255, 152, 0, 0.3); }
+        .difficulty-hard .difficulty-header { border-color: rgba(244, 67, 54, 0.3); }
+        .difficulty-impossible .difficulty-header { border-color: rgba(233, 30, 99, 0.3); }
+
+        /* ============================================
+           CARTÕES DE QUESTÕES
+           ============================================ */
+        .question-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .question-card:hover {
+            border-color: rgba(79, 195, 247, 0.3);
+            box-shadow: 0 0 25px rgba(79, 195, 247, 0.08);
+        }
+
+        .question-number {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            font-weight: bold;
+            font-size: 0.85rem;
+            padding: 5px 14px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        /* ============================================
+           ALTERNATIVAS
+           ============================================ */
+        .alternatives {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .alternative {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            user-select: none;
+        }
+
+        .alternative:hover {
+            background: rgba(79, 195, 247, 0.08);
+            border-color: rgba(79, 195, 247, 0.3);
+            transform: translateX(5px);
+        }
+
+        .alternative.selected {
+            background: rgba(79, 195, 247, 0.12);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(79, 195, 247, 0.15);
+        }
+
+        .alternative-letter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            background: rgba(79, 195, 247, 0.15);
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .alternative.selected .alternative-letter {
+            background: var(--accent-blue);
+            color: var(--bg-dark);
+            box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+        }
+
+        .alternative-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            padding-top: 4px;
+        }
+
+        /* Estados de correção */
+        .alternative.correct {
+            background: rgba(76, 175, 80, 0.15) !important;
+            border-color: var(--accent-green) !important;
+        }
+
+        .alternative.correct .alternative-letter {
+            background: var(--accent-green) !important;
+            color: white !important;
+        }
+
+        .alternative.wrong {
+            background: rgba(244, 67, 54, 0.15) !important;
+            border-color: var(--accent-red) !important;
+        }
+
+        .alternative.wrong .alternative-letter {
+            background: var(--accent-red) !important;
+            color: white !important;
+        }
+
+        /* ============================================
+           BOTÕES
+           ============================================ */
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            box-shadow: 0 4px 20px rgba(79, 195, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(79, 195, 247, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: rgba(79, 195, 247, 0.05);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ============================================
+           MODAL DE RESULTADOS
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 550px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.4s ease;
+            box-shadow: 0 0 60px rgba(79, 195, 247, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .result-nome {
+            font-size: 1.4rem;
+            color: var(--accent-blue);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-acertos { color: var(--accent-green); }
+        .stat-erros { color: var(--accent-red); }
+        .stat-porcentagem { color: var(--accent-gold); }
+        .stat-tempo { color: var(--accent-blue); }
+
+        .result-message {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           AVISO ANTI-COLA
+           ============================================ */
+        .warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 26, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .warning-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .warning-content {
+            text-align: center;
+            padding: 40px;
+            max-width: 450px;
+        }
+
+        .warning-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .warning-title {
+            font-size: 1.5rem;
+            color: var(--accent-red);
+            margin-bottom: 15px;
+        }
+
+        .warning-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           RODAPÉ
+           ============================================ */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+
+        /* ============================================
+           RESPONSIVIDADE
+           ============================================ */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .info-panel {
+                gap: 10px;
+            }
+
+            .info-card {
+                min-width: 100px;
+                padding: 12px 15px;
+            }
+
+            .info-card .value {
+                font-size: 1.3rem;
+            }
+
+            .question-card {
+                padding: 18px;
+            }
+
+            .question-text {
+                font-size: 0.95rem;
+            }
+
+            .alternative {
+                padding: 12px 14px;
+            }
+
+            .result-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .btn {
+                padding: 12px 25px;
+                font-size: 0.9rem;
+            }
+
+            .modal-content {
+                padding: 25px;
+            }
+
+            .result-nome {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* ============================================
+           SCROLLBAR PERSONALIZADA
+           ============================================ */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-blue);
+        }
+
+        /* ============================================
+           ANIMAÇÃO DE ENTRADA
+           ============================================ */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-card {
+            animation: fadeInUp 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        .difficulty-section:nth-child(1) .question-card:nth-child(1) { animation-delay: 0.1s; }
+        .difficulty-section:nth-child(1) .question-card:nth-child(2) { animation-delay: 0.2s; }
+        .difficulty-section:nth-child(1) .question-card:nth-child(3) { animation-delay: 0.3s; }
+        .difficulty-section:nth-child(2) .question-card:nth-child(1) { animation-delay: 0.4s; }
+        .difficulty-section:nth-child(2) .question-card:nth-child(2) { animation-delay: 0.5s; }
+        .difficulty-section:nth-child(2) .question-card:nth-child(3) { animation-delay: 0.6s; }
+        .difficulty-section:nth-child(3) .question-card:nth-child(1) { animation-delay: 0.7s; }
+        .difficulty-section:nth-child(3) .question-card:nth-child(2) { animation-delay: 0.8s; }
+        .difficulty-section:nth-child(3) .question-card:nth-child(3) { animation-delay: 0.9s; }
+        .difficulty-section:nth-child(4) .question-card:nth-child(1) { animation-delay: 1.0s; }
+    </style>
+</head>
+<body>
+    <!-- Fundo de estrelas animadas -->
+    <div class="stars-container" id="starsContainer"></div>
+
+    <!-- Overlay de aviso anti-cola -->
+    <div class="warning-overlay" id="warningOverlay">
+        <div class="warning-content">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-title">Atenção!</div>
+            <div class="warning-text">A prova foi reiniciada porque você saiu da página.</div>
+        </div>
+    </div>
+
+    <!-- Modal de resultados -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-title">🚀 Resultado do Simulado</div>
+            <div class="result-nome" id="resultNome">Participante</div>
+            <div class="result-stats">
+                <div class="stat-item">
+                    <div class="stat-value stat-acertos" id="statAcertos">0</div>
+                    <div class="stat-label">Acertos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value stat-erros" id="statErros">0</div>
+                    <div class="stat-label">Erros</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value stat-porcentagem" id="statPorcentagem">0%</div>
+                    <div class="stat-label">Aproveitamento</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value stat-tempo" id="statTempo">00:00</div>
+                    <div class="stat-label">Tempo</div>
+                </div>
+            </div>
+            <div class="result-message" id="resultMessage"></div>
+            <div class="btn-container" style="margin: 0; flex-direction: column;">
+                <a class="btn btn-whatsapp" id="btnWhatsApp" href="#" target="_blank">
+                    📱 Compartilhar no WhatsApp
+                </a>
+                <button class="btn btn-primary" onclick="reiniciarSimulado()">Reiniciar Simulado</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🌌 OBA 2026</h1>
+            <div class="subtitle">Simulado de Astronomia e Astronáutica</div>
+        </header>
+
+        <!-- Campo de nome -->
+        <div class="nome-section">
+            <label for="inputNome">👤 Digite seu nome</label>
+            <input type="text" id="inputNome" placeholder="Seu nome completo" maxlength="50">
+        </div>
+
+        <!-- Painel de informações -->
+        <div class="info-panel">
+            <div class="info-card timer-card">
+                <div class="label">⏱️ Cronômetro</div>
+                <div class="value" id="cronometro">00:00:00</div>
+            </div>
+            <div class="info-card">
+                <div class="label">✅ Respondidas</div>
+                <div class="value" id="respondidas">0 / 10</div>
+            </div>
+            <div class="info-card">
+                <div class="label">📊 Progresso</div>
+                <div class="value" id="progressoTexto">0%</div>
+            </div>
+        </div>
+
+        <!-- Barra de progresso -->
+        <div class="progress-section">
+            <div class="progress-label">
+                <span>Progresso da prova</span>
+                <span id="progressoLabel">0 de 10 questões</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Questões -->
+        <div id="questoesContainer"></div>
+
+        <!-- Botões de ação -->
+        <div class="btn-container">
+            <button class="btn btn-primary" id="btnFinalizar" onclick="finalizarProva()">Finalizar Prova</button>
+            <button class="btn btn-secondary" onclick="reiniciarSimulado()">Reiniciar Simulado</button>
+        </div>
+
+        <!-- Rodapé -->
+        <footer class="footer">
+            Olimpíada Brasileira de Astronomia e Astronáutica (OBA) 2026 · Simulado Interativo
+        </footer>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DAS QUESTÕES
+        // Respostas codificadas para dificultar inspeção
+        // ============================================
+        const RESPOSTAS_CODIFICADAS = [
+            atob("Qg=="),  // Q1
+            atob("Qg=="),  // Q2
+            atob("Qg=="),  // Q3
+            atob("Qw=="),  // Q4
+            atob("Qw=="),  // Q5
+            atob("Qg=="),  // Q6
+            atob("Qw=="),  // Q7
+            atob("Qw=="),  // Q8
+            atob("QQ=="),  // Q9
+            atob("Qw=="),  // Q10
+        ];
+
+        const QUESTOES = [
+            // FÁCEIS
+            {
+                id: 1,
+                dificuldade: "Fácil",
+                dificuldadeClass: "difficulty-easy",
+                icone: "🟢",
+                texto: "Se no Brasil é dia, em regiões do outro lado da Terra geralmente é noite porque:",
+                alternativas: [
+                    { letra: "A", texto: "a Lua bloqueia a luz solar" },
+                    { letra: "B", texto: "a Terra realiza o movimento de rotação" },
+                    { letra: "C", texto: "o Sol gira em torno da Terra" },
+                    { letra: "D", texto: "a atmosfera impede a passagem da luz" }
+                ]
+            },
+            {
+                id: 2,
+                dificuldade: "Fácil",
+                dificuldadeClass: "difficulty-easy",
+                icone: "🟢",
+                texto: "A Lua apresenta sempre a mesma face voltada para a Terra porque:",
+                alternativas: [
+                    { letra: "A", texto: "ela não possui rotação" },
+                    { letra: "B", texto: "sua rotação e sua translação têm aproximadamente o mesmo período" },
+                    { letra: "C", texto: "a gravidade da Terra impede seu movimento" },
+                    { letra: "D", texto: "o Sol ilumina apenas um lado" }
+                ]
+            },
+            {
+                id: 3,
+                dificuldade: "Fácil",
+                dificuldadeClass: "difficulty-easy",
+                icone: "🟢",
+                texto: "Em qual situação a força gravitacional entre dois corpos será maior?",
+                alternativas: [
+                    { letra: "A", texto: "massas pequenas e grande distância" },
+                    { letra: "B", texto: "massas grandes e pequena distância" },
+                    { letra: "C", texto: "massas pequenas e pequena distância" },
+                    { letra: "D", texto: "massas grandes e grande distância" }
+                ]
+            },
+            // MÉDIAS
+            {
+                id: 4,
+                dificuldade: "Médio",
+                dificuldadeClass: "difficulty-medium",
+                icone: "🟡",
+                texto: "Um astronauta pesa 800 N na Terra. Na Lua, onde a gravidade é cerca de 6 vezes menor, seu peso será aproximadamente:",
+                alternativas: [
+                    { letra: "A", texto: "800 N" },
+                    { letra: "B", texto: "4800 N" },
+                    { letra: "C", texto: "133 N" },
+                    { letra: "D", texto: "50 N" }
+                ]
+            },
+            {
+                id: 5,
+                dificuldade: "Médio",
+                dificuldadeClass: "difficulty-medium",
+                icone: "🟡",
+                texto: "A principal razão de existirem estações do ano na Terra é:",
+                alternativas: [
+                    { letra: "A", texto: "a variação da distância entre Terra e Sol" },
+                    { letra: "B", texto: "o movimento das nuvens" },
+                    { letra: "C", texto: "a inclinação do eixo terrestre" },
+                    { letra: "D", texto: "o movimento da Lua" }
+                ]
+            },
+            {
+                id: 6,
+                dificuldade: "Médio",
+                dificuldadeClass: "difficulty-medium",
+                icone: "🟡",
+                texto: "Um satélite artificial permanece em órbita porque:",
+                alternativas: [
+                    { letra: "A", texto: "não existe gravidade no espaço" },
+                    { letra: "B", texto: "ele possui velocidade suficiente enquanto sofre atração gravitacional da Terra" },
+                    { letra: "C", texto: "motores ficam ligados o tempo inteiro" },
+                    { letra: "D", texto: "a atmosfera o sustenta" }
+                ]
+            },
+            // DIFÍCEIS
+            {
+                id: 7,
+                dificuldade: "Difícil",
+                dificuldadeClass: "difficulty-hard",
+                icone: "🔴",
+                texto: "Se a Terra parasse instantaneamente seu movimento de rotação, uma consequência imediata seria:",
+                alternativas: [
+                    { letra: "A", texto: "desaparecimento da gravidade" },
+                    { letra: "B", texto: "todos os oceanos evaporariam" },
+                    { letra: "C", texto: "objetos na superfície tenderiam a continuar em movimento devido à inércia" },
+                    { letra: "D", texto: "o Sol deixaria de iluminar a Terra" }
+                ]
+            },
+            {
+                id: 8,
+                dificuldade: "Difícil",
+                dificuldadeClass: "difficulty-hard",
+                icone: "🔴",
+                texto: "Quando observamos uma galáxia localizada a milhões de anos-luz da Terra, estamos vendo:",
+                alternativas: [
+                    { letra: "A", texto: "como ela será no futuro" },
+                    { letra: "B", texto: "uma imagem produzida por computador" },
+                    { letra: "C", texto: "como ela era no passado" },
+                    { letra: "D", texto: "uma ilusão causada pela atmosfera" }
+                ]
+            },
+            {
+                id: 9,
+                dificuldade: "Difícil",
+                dificuldadeClass: "difficulty-hard",
+                icone: "🔴",
+                texto: "O fato de algumas estrelas apresentarem coloração azulada e outras avermelhadas indica principalmente diferenças de:",
+                alternativas: [
+                    { letra: "A", texto: "temperatura superficial" },
+                    { letra: "B", texto: "quantidade de planetas" },
+                    { letra: "C", texto: "distância até a Terra" },
+                    { letra: "D", texto: "idade do Universo" }
+                ]
+            },
+            // IMPOSSÍVEL
+            {
+                id: 10,
+                dificuldade: "Impossível",
+                dificuldadeClass: "difficulty-impossible",
+                icone: "💀",
+                texto: "Considere dois planetas esféricos de mesma composição. O planeta X possui raio duas vezes maior que o planeta Y. Supondo mesma densidade, a gravidade na superfície de X será aproximadamente:",
+                alternativas: [
+                    { letra: "A", texto: "metade da de Y" },
+                    { letra: "B", texto: "igual à de Y" },
+                    { letra: "C", texto: "duas vezes maior que a de Y" },
+                    { letra: "D", texto: "quatro vezes maior que a de Y" }
+                ]
+            }
+        ];
+
+        // ============================================
+        // ESTADO DO SIMULADO
+        // ============================================
+        let respostas = {};
+        let tempoInicio = null;
+        let tempoDecorrido = 0;
+        let cronometroInterval = null;
+        let provaFinalizada = false;
+        let focoPerdido = false;
+
+        // ============================================
+        // INICIALIZAÇÃO DAS ESTRELAS
+        // ============================================
+        function criarEstrelas() {
+            const container = document.getElementById('starsContainer');
+            const numEstrelas = 150;
+
+            for (let i = 0; i < numEstrelas; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const tamanho = Math.random() * 2.5 + 0.5;
+                star.style.width = tamanho + 'px';
+                star.style.height = tamanho + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                star.style.setProperty('--max-opacity', Math.random() * 0.7 + 0.3);
+                star.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(star);
+            }
+
+            // Estrelas cadentes
+            for (let i = 0; i < 3; i++) {
+                const shooting = document.createElement('div');
+                shooting.className = 'shooting-star';
+                shooting.style.top = Math.random() * 50 + '%';
+                shooting.style.left = Math.random() * 50 + '%';
+                shooting.style.setProperty('--shoot-duration', (Math.random() * 4 + 6) + 's');
+                shooting.style.animationDelay = Math.random() * 10 + 's';
+                container.appendChild(shooting);
+            }
+        }
+
+        // ============================================
+        // RENDERIZAÇÃO DAS QUESTÕES
+        // ============================================
+        function renderizarQuestoes() {
+            const container = document.getElementById('questoesContainer');
+            container.innerHTML = '';
+
+            const dificuldades = ['Fácil', 'Médio', 'Difícil', 'Impossível'];
+            const dificuldadeMap = {
+                'Fácil': { class: 'difficulty-easy', icone: '🟢' },
+                'Médio': { class: 'difficulty-medium', icone: '🟡' },
+                'Difícil': { class: 'difficulty-hard', icone: '🔴' },
+                'Impossível': { class: 'difficulty-impossible', icone: '💀' }
+            };
+
+            dificuldades.forEach(dif => {
+                const questoesDif = QUESTOES.filter(q => q.dificuldade === dif);
+                if (questoesDif.length === 0) return;
+
+                const section = document.createElement('div');
+                section.className = `difficulty-section ${dificuldadeMap[dif].class}`;
+
+                const header = document.createElement('div');
+                header.className = 'difficulty-header';
+                header.innerHTML = `
+                    <span class="difficulty-icon">${dificuldadeMap[dif].icone}</span>
+                    <span class="difficulty-title">Nível ${dif}</span>
+                `;
+                section.appendChild(header);
+
+                questoesDif.forEach(q => {
+                    const card = document.createElement('div');
+                    card.className = 'question-card';
+                    card.id = `questao-${q.id}`;
+
+                    let altsHTML = '';
+                    q.alternativas.forEach(alt => {
+                        altsHTML += `
+                            <div class="alternative" data-questao="${q.id}" data-letra="${alt.letra}" onclick="selecionarAlternativa(${q.id}, '${alt.letra}')">
+                                <div class="alternative-letter">${alt.letra}</div>
+                                <div class="alternative-text">${alt.texto}</div>
+                            </div>
+                        `;
+                    });
+
+                    card.innerHTML = `
+                        <div class="question-number">Questão ${q.id}</div>
+                        <div class="question-text">${q.texto}</div>
+                        <div class="alternatives" id="alternativas-${q.id}">
+                            ${altsHTML}
+                        </div>
+                    `;
+
+                    section.appendChild(card);
+                });
+
+                container.appendChild(section);
+            });
+        }
+
+        // ============================================
+        // SELEÇÃO DE ALTERNATIVA
+        // ============================================
+        function selecionarAlternativa(questaoId, letra) {
+            if (provaFinalizada) return;
+
+            // Remove seleção anterior
+            const container = document.getElementById(`alternativas-${questaoId}`);
+            container.querySelectorAll('.alternative').forEach(alt => {
+                alt.classList.remove('selected');
+            });
+
+            // Seleciona a nova
+            const selecionada = container.querySelector(`[data-letra="${letra}"]`);
+            selecionada.classList.add('selected');
+
+            // Salva resposta
+            respostas[questaoId] = letra;
+
+            // Atualiza progresso
+            atualizarProgresso();
+        }
+
+        // ============================================
+        // ATUALIZAÇÃO DE PROGRESSO
+        // ============================================
+        function atualizarProgresso() {
+            const total = QUESTOES.length;
+            const respondidas = Object.keys(respostas).length;
+            const porcentagem = Math.round((respondidas / total) * 100);
+
+            document.getElementById('respondidas').textContent = `${respondidas} / ${total}`;
+            document.getElementById('progressoTexto').textContent = `${porcentagem}%`;
+            document.getElementById('progressoLabel').textContent = `${respondidas} de ${total} questões`;
+            document.getElementById('progressBar').style.width = `${porcentagem}%`;
+        }
+
+        // ============================================
+        // CRONÔMETRO
+        // ============================================
+        function iniciarCronometro() {
+            tempoInicio = Date.now() - tempoDecorrido;
+            cronometroInterval = setInterval(() => {
+                tempoDecorrido = Date.now() - tempoInicio;
+                document.getElementById('cronometro').textContent = formatarTempo(tempoDecorrido);
+            }, 1000);
+        }
+
+        function pararCronometro() {
+            clearInterval(cronometroInterval);
+        }
+
+        function formatarTempo(ms) {
+            const totalSegundos = Math.floor(ms / 1000);
+            const horas = Math.floor(totalSegundos / 3600);
+            const minutos = Math.floor((totalSegundos % 3600) / 60);
+            const segundos = totalSegundos % 60;
+            return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+        }
+
+        // ============================================
+        // SISTEMA ANTI-COLA
+        // ============================================
+        function ativarAntiCola() {
+            // Detecta troca de aba
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && !provaFinalizada) {
+                    reiniciarPorFocoPerdido();
+                }
+            });
+
+            // Detecta perda de foco da janela
+            window.addEventListener('blur', () => {
+                if (!provaFinalizada) {
+                    reiniciarPorFocoPerdido();
+                }
+            });
+
+            // Previne teclas de atalho comuns
+            document.addEventListener('keydown', (e) => {
+                // F12 (DevTools)
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+U
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'J')) {
+                    e.preventDefault();
+                    return false;
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Previne clique direito
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                return false;
+            });
+        }
+
+        function reiniciarPorFocoPerdido() {
+            if (focoPerdido) return;
+            focoPerdido = true;
+
+            // Mostra aviso
+            const overlay = document.getElementById('warningOverlay');
+            overlay.classList.add('active');
+
+            // Limpa tudo
+            limparTudo();
+
+            // Esconde aviso após 3 segundos
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                focoPerdido = false;
+            }, 3000);
+        }
+
+        // ============================================
+        // LIMPAR TUDO (RESET)
+        // ============================================
+        function limparTudo() {
+            // Limpa respostas
+            respostas = {};
+
+            // Limpa nome
+            document.getElementById('inputNome').value = '';
+
+            // Limpa seleções visuais
+            document.querySelectorAll('.alternative').forEach(alt => {
+                alt.classList.remove('selected', 'correct', 'wrong', 'correct-answer');
+            });
+
+            // Reseta cronômetro
+            pararCronometro();
+            tempoDecorrido = 0;
+            document.getElementById('cronometro').textContent = '00:00:00';
+            iniciarCronometro();
+
+            // Reseta progresso
+            atualizarProgresso();
+
+            // Reseta estado
+            provaFinalizada = false;
+            document.getElementById('btnFinalizar').disabled = false;
+
+            // Fecha modal se estiver aberto
+            document.getElementById('resultModal').classList.remove('active');
+        }
+
+        // ============================================
+        // FINALIZAR PROVA
+        // ============================================
+        function finalizarProva() {
+            if (provaFinalizada) return;
+
+            // Verifica nome
+            const nome = document.getElementById('inputNome').value.trim();
+            if (!nome) {
+                alert('Por favor, digite seu nome antes de finalizar a prova!');
+                document.getElementById('inputNome').focus();
+                return;
+            }
+
+            const respondidas = Object.keys(respostas).length;
+            if (respondidas < QUESTOES.length) {
+                const faltam = QUESTOES.length - respondidas;
+                if (!confirm(`Você ainda não respondeu ${faltam} questão(ões). Deseja finalizar mesmo assim?`)) {
+                    return;
+                }
+            }
+
+            provaFinalizada = true;
+            pararCronometro();
+
+            // Calcula resultados
+            let acertos = 0;
+            const resultados = [];
+
+            QUESTOES.forEach(q => {
+                const respostaUsuario = respostas[q.id] || null;
+                const respostaCorreta = RESPOSTAS_CODIFICADAS[q.id - 1];
+                const acertou = respostaUsuario === respostaCorreta;
+
+                if (acertou) acertos++;
+
+                resultados.push({
+                    questaoId: q.id,
+                    respostaUsuario: respostaUsuario,
+                    respostaCorreta: respostaCorreta,
+                    acertou: acertou
+                });
+            });
+
+            // Destaca respostas
+            destacarRespostas(resultados);
+
+            // Mostra modal
+            mostrarResultados(acertos, resultados, nome);
+        }
+
+        function destacarRespostas(resultados) {
+            resultados.forEach(r => {
+                const container = document.getElementById(`alternativas-${r.questaoId}`);
+                if (!container) return;
+
+                container.querySelectorAll('.alternative').forEach(alt => {
+                    const letra = alt.getAttribute('data-letra');
+
+                    // Remove classes anteriores
+                    alt.classList.remove('selected');
+
+                    if (letra === r.respostaCorreta) {
+                        // Resposta correta sempre destacada
+                        alt.classList.add('correct');
+                    } else if (letra === r.respostaUsuario && !r.acertou) {
+                        // Resposta errada do usuário
+                        alt.classList.add('wrong');
+                    }
+                });
+            });
+        }
+
+        function mostrarResultados(acertos, resultados, nome) {
+            const total = QUESTOES.length;
+            const erros = total - acertos;
+            const porcentagem = Math.round((acertos / total) * 100);
+            const tempoFinal = formatarTempo(tempoDecorrido);
+
+            // Preenche estatísticas
+            document.getElementById('resultNome').textContent = `👤 ${nome}`;
+            document.getElementById('statAcertos').textContent = acertos;
+            document.getElementById('statErros').textContent = erros;
+            document.getElementById('statPorcentagem').textContent = `${porcentagem}%`;
+            document.getElementById('statTempo').textContent = tempoFinal;
+
+            // Mensagem personalizada
+            let mensagem = '';
+            if (porcentagem === 100) {
+                mensagem = '🌟 Perfeito! Você domina a astronomia como um verdadeiro astronauta!';
+            } else if (porcentagem >= 80) {
+                mensagem = '🚀 Excelente! Você tem um ótimo conhecimento em astronomia!';
+            } else if (porcentagem >= 60) {
+                mensagem = '⭐ Bom trabalho! Continue estudando para alcançar as estrelas!';
+            } else if (porcentagem >= 40) {
+                mensagem = '🌙 Você está no caminho certo. Revise os conceitos e tente novamente!';
+            } else {
+                mensagem = '🛸 Não desista! A astronomia é vasta e cada tentativa é um aprendizado!';
+            }
+
+            // Lista de acertos/erros
+            let lista = '<br><br><strong>Detalhamento:</strong><br>';
+            resultados.forEach(r => {
+                const icone = r.acertou ? '✅' : '❌';
+                const status = r.acertou ? 'acertou' : 'errou';
+                const respUser = r.respostaUsuario || '—';
+                lista += `${icone} Q${r.questaoId}: você marcou <strong>${respUser}</strong> (correta: ${r.respostaCorreta}) — ${status}<br>`;
+            });
+
+            document.getElementById('resultMessage').innerHTML = mensagem + lista;
+
+            // Configura botão do WhatsApp
+            const mensagemWhats = encodeURIComponent(
+                `🚀 *Resultado Simulado OBA 2026* 🌌\n\n` +
+                `👤 Nome: ${nome}\n` +
+                `✅ Acertos: ${acertos} de ${total}\n` +
+                `❌ Erros: ${erros}\n` +
+                `📊 Aproveitamento: ${porcentagem}%\n` +
+                `⏱️ Tempo: ${tempoFinal}\n\n` +
+                `Faça você também! 🌟`
+            );
+            document.getElementById('btnWhatsApp').href = `https://wa.me/?text=${mensagemWhats}`;
+
+            // Abre modal
+            document.getElementById('resultModal').classList.add('active');
+        }
+
+        // ============================================
+        // REINICIAR SIMULADO
+        // ============================================
+        function reiniciarSimulado() {
+            if (!confirm('Tem certeza que deseja reiniciar o simulado? Todas as respostas serão perdidas.')) {
+                return;
+            }
+            limparTudo();
+            // Re-renderiza para limpar classes de correção
+            renderizarQuestoes();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            criarEstrelas();
+            renderizarQuestoes();
+            atualizarProgresso();
+            iniciarCronometro();
+            ativarAntiCola();
+        });
+    </script>
+</body>
+</html>
